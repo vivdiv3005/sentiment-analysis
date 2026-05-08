@@ -1,31 +1,36 @@
 # 🧠 Social Sentiment Analyzer — Streamlit Cloud Edition
 
-Zero-dependency sentiment analysis for X, Instagram, and YouTube posts.
-No API key required. Powered by Hugging Face free Inference API.
+Instant sentiment analysis for X, Instagram, and YouTube posts.
+**No API key. No cold starts. 100% local libraries.**
+
+## Stack
+- **VADER** (`vaderSentiment`) — rule-based, built for social media, emojis, slang
+- **TextBlob** — polarity + subjectivity scoring
+- **BeautifulSoup** — YouTube meta tag scraping (YouTube only)
 
 ## Deploy to Streamlit Cloud (free)
 
-1. Push this folder to a GitHub repo
-2. Go to https://share.streamlit.io → New app → select your repo
-3. Set **Main file path** to `app.py`
-4. Click **Deploy** — done!
+1. Push this entire folder to a GitHub repo
+2. Go to https://share.streamlit.io → **New app**
+3. Select your repo, branch, and set **Main file path** to `app.py`
+4. Click **Deploy** — live in ~60 seconds, no secrets needed
 
 ## Run locally
 
 ```bash
 pip install -r requirements.txt
+python -m textblob.download_corpora   # one-time NLTK corpus download
 streamlit run app.py
 ```
 
 ## How it works
 
-- **No torch / transformers installed** — uses HF Inference API (HTTP calls)
-- Sentiment model: `cardiffnlp/twitter-roberta-base-sentiment-latest`
-- Emotion model:   `j-hartmann/emotion-english-distilroberta-base`
-- YouTube: title + description auto-fetched via og: meta tags
-- X / Instagram: user pastes the post text (these platforms block scraping)
-
-## Optional: Avoid rate limits
-
-Get a free token at https://huggingface.co/settings/tokens
-and paste it into the sidebar. Raises limit from ~30 to ~1000 req/hr.
+| Step | What happens |
+|---|---|
+| User pastes URL | Platform detected (X / Instagram / YouTube) |
+| User pastes text | X & Instagram text pasted manually (they block scraping) |
+| YouTube | Title + description auto-fetched via og: meta tags |
+| Analysis | VADER compound score + TextBlob polarity/subjectivity |
+| Emotions | Derived from VADER scores + keyword boosters |
+| Themes | Keyword matching across 10 theme categories |
+| Insights | Rule-based linguistic pattern detection |
