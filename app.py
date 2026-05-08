@@ -1,8 +1,7 @@
 import streamlit as st
-import anthropic
+from openai import OpenAI, AuthenticationError
 import json
 import re
-import time
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -83,7 +82,7 @@ def detect_platform(url: str) -> str:
 
 
 def analyze_sentiment(url: str, api_key: str) -> dict:
-    client = anthropic.Anthropic(api_key=api_key)
+    client = OpenAI(api_key=api_key)
 
     system_prompt = """You are a human sentiment and emotion analysis expert. 
 Given a social media post URL, simulate fetching the post and perform deep human sentiment analysis.
@@ -122,15 +121,17 @@ Rules:
 - Make analysis feel genuinely human and insightful, not generic
 """
 
-    message = client.messages.create(
-        model="claude-opus-4-5",
+    response = client.chat.completions.create(
+        model="gpt-4o",
         max_tokens=1024,
-        system=system_prompt,
-        messages=[{"role": "user", "content": f"Analyze the sentiment of this post: {url}"}],
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Analyze the sentiment of this post: {url}"},
+        ],
+        response_format={"type": "json_object"},
     )
 
-    raw = message.content[0].text.strip()
-    # Strip any accidental markdown fences
+    raw = response.choices[0].message.content.strip()
     raw = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.MULTILINE).strip()
     return json.loads(raw)
 
@@ -143,17 +144,17 @@ st.caption("Paste any X, Instagram, or YouTube post URL to get a deep human sent
 with st.sidebar:
     st.header("⚙️ Settings")
     api_key = st.text_input(
-        "Anthropic API Key",
+        "OpenAI API Key",
         type="password",
-        placeholder="sk-ant-...",
-        help="Get your key at console.anthropic.com",
+        placeholder="sk-...",
+        help="Get your key at platform.openai.com/api-keys",
     )
     st.markdown("---")
     st.markdown("**Supported platforms**")
     st.markdown("- 𝕏 / Twitter\n- 📸 Instagram\n- ▶️ YouTube")
     st.markdown("---")
     st.markdown("**About**")
-    st.caption("This app uses Claude to analyze human emotion, tone, and behavioral signals in social media posts.")
+    st.caption("This app uses GPT-4o to analyze human emotion, tone, and behavioral signals in social media posts.")
 
 # Main input
 url = st.text_input(
@@ -181,7 +182,7 @@ with col_ex:
 # ── Analysis ────────────────────────────────────────────────────────────────────
 if run or example:
     if not api_key:
-        st.error("Please enter your Anthropic API key in the sidebar.")
+        st.error("Please enter your OpenAI API key in the sidebar.")
         st.stop()
     if not url:
         st.warning("Please enter a post URL.")
@@ -196,8 +197,8 @@ if run or example:
         except json.JSONDecodeError:
             st.error("The model returned an unexpected format. Please try again.")
             st.stop()
-        except anthropic.AuthenticationError:
-            st.error("Invalid API key. Please check your Anthropic API key.")
+        except AuthenticationError:
+            st.error("Invalid API key. Please check your OpenAI API key.")
             st.stop()
         except Exception as e:
             st.error(f"Something went wrong: {e}")
